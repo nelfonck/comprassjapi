@@ -9,54 +9,68 @@ use App\Models\RazonSocial;
 class RazonSocialController extends Controller
 {
     public function getRazonSocialList(Request $request){
-        $result = RazonSocial::where('activo', true)->get();
-        return response()->json([
-            'statusCode' => 200,
-            'message' => 'Consulta realizada correctamente',
-            'data' => $result,
-        ], 200);
+        try {
+            $result = RazonSocial::where('activo', true)->get();
+            return response()->json([
+                'statusCode' => 200,
+                'message' => 'Consulta realizada correctamente',
+                'data' => $result,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function saveRazonSocial(Request $request){
-        $validator = Validator::make($request->all(),[
-            'identificacion' => 'required',
-            'tipo_identificacion' => 'required',
-            'nombre' => 'required',
-            'nombre_comercial' => 'required',
-            'correo' => 'required',
-            'telefono' => 'required'
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'statusCode' => 400,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 400);
-        }
-        $razonSocial = new RazonSocial();
-
-        $razonSocial->identificacion = $request->identificacion;
-        $razonSocial->tipo_identificacion = $request->tipo_identificacion;
-        $razonSocial->nombre = $request->nombre;
-        $razonSocial->nombre_comercial = $request->nombre_comercial;
-        $razonSocial->correo = $request->correo;
-        $razonSocial->telefono = $request->telefono;
-        $razonSocial->fecha_registro = now();       
-        $razonSocial->activo = true;
-        
-        $razonSocial->save();
-
-        if ($razonSocial->save()) {
-            return response()->json([
-                'statusCode' => 200,
-                'message' => 'Razón social creada correctamente',
-                'data' => $razonSocial
+        try {
+            $validator = Validator::make($request->all(),[
+                'identificacion' => 'required',
+                'tipo_identificacion' => 'required',
+                'nombre' => 'required',
+                'nombre_comercial' => 'required',
+                'correo' => 'required',
+                'telefono' => 'required'
             ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'statusCode' => 400,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 400);
+            }
+            $razonSocial = new RazonSocial();
+    
+            $razonSocial->identificacion = $request->identificacion;
+            $razonSocial->tipo_identificacion = $request->tipo_identificacion;
+            $razonSocial->nombre = $request->nombre;
+            $razonSocial->nombre_comercial = $request->nombre_comercial;
+            $razonSocial->correo = $request->correo;
+            $razonSocial->telefono = $request->telefono;
+            $razonSocial->fecha_registro = now();       
+            $razonSocial->activo = true;
+            
+            $razonSocial->save();
+    
+            if ($razonSocial->save()) {
+                return response()->json([
+                    'statusCode' => 200,
+                    'message' => 'Razón social creada correctamente',
+                    'data' => $razonSocial
+                ]);
+            }
+            
+            return response()->json([
+                'statusCode' => 500,
+                'message' => 'No fue posible guardar la razón social'
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
         }
-        
-        return response()->json([
-            'statusCode' => 500,
-            'message' => 'No fue posible guardar la razón social'
-        ], 500);
     }
 }
