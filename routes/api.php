@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RazonSocialController;
+use App\Http\Controllers\TiendaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -22,12 +23,24 @@ Route::middleware('apikey')->group(function () {
 
 
     Route::get(
+        '/existe-razon-social',
+        [RazonSocialController::class, 'existeRazonSocial']
+    );
+    Route::get(
         '/razones-sociales',
         [RazonSocialController::class, 'getRazonSocialList']
     );
     Route::post(
-        '/save-razon-social',
-        [RazonSocialController::class, 'saveRazonSocial']
+        '/guardar-razon-social',
+        [RazonSocialController::class, 'guardarRazonSocial']
+    );
+    Route::post(
+        '/guardar-tienda',
+        [TiendaController::class, 'guardarTienda']
+    );
+    Route::get(
+        '/tiendas',
+        [TiendaController::class, 'getTiendas']
     );
     
 

@@ -1,24 +1,15 @@
 <?php
-
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Models\RazonSocial;
+use App\Models\Tienda;
 
-class RazonSocialController extends Controller
+class TiendaController extends Controller
 {
-    /*200 → Consulta o guardado exitoso.
-    201 → Recurso creado correctamente (opcional para POST de creación).
-    400 → Datos inválidos o faltan campos requeridos.
-    401 → API Key inválida o no autenticado.
-    404 → Registro no encontrado.
-    409 → Registro duplicado.
-    500 → Error inesperado del servidor.*/
     
-    public function getRazonSocialList(Request $request){
+    public function getTiendas(Request $request){
         try {
-            $result = RazonSocial::where('activo', true)->get();
+            $result = Tienda::where('activo', true)->get();
             return response()->json([
                 'statusCode' => 200,
                 'message' => 'Consulta realizada correctamente',
@@ -32,15 +23,15 @@ class RazonSocialController extends Controller
         }
     }
 
-    public function guardarRazonSocial(Request $request){
+    public function guardarTienda(Request $request){
         try {
             $validator = Validator::make($request->all(),[
-                'identificacion' => 'required',
-                'tipo_identificacion' => 'required',
                 'nombre' => 'required',
-                'nombre_comercial' => 'required',
+                'id_razon_social' => 'required',
+                'telefono' => 'required',
                 'correo' => 'required',
-                'telefono' => 'required'
+                'direccion' => 'required',
+                'clave_correo' => 'required'
             ]);
             if ($validator->fails()) {
                 return response()->json([
@@ -50,37 +41,35 @@ class RazonSocialController extends Controller
                 ], 400);
             }
 
-            if (self::_existeRazonSocial($request->identificacion)){
+            if (self::_existeTienda($request->nombre)){
                 return response()->json([
                     'statusCode' => 409,
-                    'message' => 'La identificación ya existe'
+                    'message' => 'La tienda ya existe'
                 ], 409);
             }
 
-            $razonSocial = new RazonSocial();
+            $tienda = new Tienda();
     
-            $razonSocial->identificacion = $request->identificacion;
-            $razonSocial->tipo_identificacion = $request->tipo_identificacion;
-            $razonSocial->nombre = $request->nombre;
-            $razonSocial->nombre_comercial = $request->nombre_comercial;
-            $razonSocial->correo = $request->correo;
-            $razonSocial->telefono = $request->telefono;
-            $razonSocial->fecha_registro = now();       
-            $razonSocial->activo = true;
+            $tienda->nombre = $request->nombre;
+            $tienda->id_razon_social = $request->id_razon_social;
+            $tienda->telefono = $request->telefono;
+            $tienda->correo = $request->correo;
+            $tienda->direccion = $request->direccion;
+            $tienda->clave_correo = $request->clave_correo;    
             
-            $razonSocial->save();
+            $tienda->save();
     
-            if ($razonSocial->save()) {
+            if ($tienda->save()) {
                 return response()->json([
                     'statusCode' => 200,
-                    'message' => 'Razón social creada correctamente',
-                    'data' => $razonSocial
+                    'message' => 'tienda creada correctamente',
+                    'data' => $tienda
                 ]);
             }
             
             return response()->json([
                 'statusCode' => 500,
-                'message' => 'No fue posible guardar la razón social'
+                'message' => 'No fue posible guardar la tienda'
             ], 500);
         } catch (\Exception $e) {
             return response()->json([
@@ -90,9 +79,9 @@ class RazonSocialController extends Controller
         }
     }
 
-    public function existeRazonSocial(Request $request){
+    public function existeTienda(Request $request){
         $validator = Validator::make($request->all(),[
-            'identificacion' => 'required',
+            'nombre' => 'required',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -103,7 +92,7 @@ class RazonSocialController extends Controller
         }
         try {
 
-            $existe = self::_existeRazonSocial($request->identificacion);
+            $existe = self::_existeTienda($request->nombre);
            
             return response()->json([
                 'statusCode' => 200,
@@ -118,11 +107,11 @@ class RazonSocialController extends Controller
             ], 500);
         }
     }
-    private function _existeRazonSocial(string $identificacion): bool
+    private function _existeTienda(string $nombre): bool
     {
-        return RazonSocial::where(
-            'identificacion',
-            $identificacion
+        return Tienda::where(
+            'nombre',
+            $nombre
         )->exists();
     }
 }
