@@ -30,8 +30,7 @@ class TiendaController extends Controller
                 'id_razon_social' => 'required',
                 'telefono' => 'required',
                 'correo' => 'required',
-                'direccion' => 'required',
-                'clave_correo' => 'required'
+                'direccion' => 'required'
             ]);
             if ($validator->fails()) {
                 return response()->json([
@@ -54,8 +53,7 @@ class TiendaController extends Controller
             $tienda->id_razon_social = $request->id_razon_social;
             $tienda->telefono = $request->telefono;
             $tienda->correo = $request->correo;
-            $tienda->direccion = $request->direccion;
-            $tienda->clave_correo = $request->clave_correo;    
+            $tienda->direccion = $request->direccion;    
             
             $tienda->save();
     
@@ -67,10 +65,6 @@ class TiendaController extends Controller
                 ]);
             }
             
-            return response()->json([
-                'statusCode' => 500,
-                'message' => 'No fue posible guardar la tienda'
-            ], 500);
         } catch (\Exception $e) {
             return response()->json([
                 'statusCode' => 500,

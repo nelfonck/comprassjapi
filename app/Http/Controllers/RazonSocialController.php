@@ -40,7 +40,8 @@ class RazonSocialController extends Controller
                 'nombre' => 'required',
                 'nombre_comercial' => 'required',
                 'correo' => 'required',
-                'telefono' => 'required'
+                'telefono' => 'required',
+                'clave_correo' => 'required'
             ]);
             if ($validator->fails()) {
                 return response()->json([
@@ -66,6 +67,7 @@ class RazonSocialController extends Controller
             $razonSocial->correo = $request->correo;
             $razonSocial->telefono = $request->telefono;
             $razonSocial->fecha_registro = now();       
+            $razonSocial->clave_correo = $request->clave_correo;
             $razonSocial->activo = true;
             
             $razonSocial->save();
@@ -77,11 +79,7 @@ class RazonSocialController extends Controller
                     'data' => $razonSocial
                 ]);
             }
-            
-            return response()->json([
-                'statusCode' => 500,
-                'message' => 'No fue posible guardar la razón social'
-            ], 500);
+
         } catch (\Exception $e) {
             return response()->json([
                 'statusCode' => 500,
