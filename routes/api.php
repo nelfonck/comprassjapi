@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\TiendaController;
+use App\Http\Controllers\ProveedorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -42,7 +43,14 @@ Route::middleware('apikey')->group(function () {
         '/tiendas',
         [TiendaController::class, 'getTiendas']
     );
-    
+    Route::get(
+        '/proveedores',
+        [ProveedorController::class, 'getProveedores']
+    );
+    Route::post(
+        '/guardar-proveedor',
+        [ProveedorController::class, 'guardarProveedor']
+    );
 
 
 });
