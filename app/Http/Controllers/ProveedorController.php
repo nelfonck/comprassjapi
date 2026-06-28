@@ -32,6 +32,7 @@ class ProveedorController extends Controller
         }
     }
 
+
     public function guardarProveedor(Request $request){
         try {
             $validator = Validator::make($request->all(),[

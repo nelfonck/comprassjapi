@@ -44,6 +44,10 @@ Route::middleware('apikey')->group(function () {
         [TiendaController::class, 'getTiendas']
     );
     Route::get(
+        '/existe-proveedor',
+        [ProveedorController::class, 'existeProveedor']
+    );
+    Route::get(
         '/proveedores',
         [ProveedorController::class, 'getProveedores']
     );
