@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\TiendaController;
 use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\ComprasController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -54,6 +55,10 @@ Route::middleware('apikey')->group(function () {
     Route::post(
         '/guardar-proveedor',
         [ProveedorController::class, 'guardarProveedor']
+    );
+    Route::post(
+        '/guardar-compra',
+        [ComprasController::class, 'guardarCompra']
     );
 
 
