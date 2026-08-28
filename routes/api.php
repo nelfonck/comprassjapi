@@ -60,6 +60,10 @@ Route::middleware('apikey')->group(function () {
         '/guardar-compra',
         [ComprasController::class, 'guardarCompra']
     );
+    Route::get(
+        '/compras',
+        [ComprasController::class, 'getCompras']
+    );
 
 
 });

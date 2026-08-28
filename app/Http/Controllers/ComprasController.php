@@ -10,6 +10,19 @@ use App\Models\DetalleCompra;
 
 class ComprasController extends Controller
 {
+
+    public function getCompras(Request $request){
+        try {
+            $compras = Compra::get();
+            return Response()->Json(['statusCode' => 200, 'Lista de compras', 'compras' => $compras],200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function guardarCompra(Request $request){
         try {
             $validator = Validator::make($request->all(),[
