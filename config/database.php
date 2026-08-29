@@ -78,6 +78,21 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'qupos' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => '10.147.18.3',
+            'port' => env('DB_PORT', '5432'),
+            'database' => 'dbqupos',
+            'username' => 'usrSuperCristian',
+            'password' => 'oacQO',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'schSuperCristian',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DATABASE_URL'),
