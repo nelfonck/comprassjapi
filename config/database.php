@@ -93,6 +93,21 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'factura_hub' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => '10.147.18.3',
+            'port' => env('DB_PORT', '5432'),
+            'database' => 'facturahubdb',
+            'username' => 'nelfonck',
+            'password' => '12345',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'schfacturahub',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DATABASE_URL'),
