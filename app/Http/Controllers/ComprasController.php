@@ -151,4 +151,5 @@ class ComprasController extends Controller
             $consecutivo
         )->exists();
     }
+
 }
