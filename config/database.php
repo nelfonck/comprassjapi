@@ -81,7 +81,7 @@ return [
         'qupos' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
-            'host' => '10.147.18.3',
+            'host' => '192.168.60.254',
             'port' => env('DB_PORT', '5432'),
             'database' => 'dbqupos',
             'username' => 'usrSuperCristian',
@@ -96,7 +96,7 @@ return [
         'factura_hub' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
-            'host' => '10.147.18.3',
+            'host' => '192.168.60.254',
             'port' => env('DB_PORT', '5432'),
             'database' => 'facturahubdb',
             'username' => 'nelfonck',
