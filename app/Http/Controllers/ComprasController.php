@@ -12,9 +12,27 @@ class ComprasController extends Controller
 {
 
     public function getCompras(Request $request){
+        $validator = Validator::make($request->all(),[
+            'estado-recepcion' => 'sometimes'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'statusCode' => 400,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()
+            ], 400);    
+        }
         try {
-            $compras = Compra::get();
+            $estadoRecepcion = $request['estado-recepcion'] ?? null;
+
+            if ($estadoRecepcion==null){
+                $compras = Compra::orderBy('estado_recepcion', 'desc')->get();  
+            }else{
+                $compras = Compra::where('estado_recepcion', $estadoRecepcion)->get();
+            }
+
             return Response()->Json(['statusCode' => 200, 'Lista de compras', 'compras' => $compras],200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'statusCode' => 500,
