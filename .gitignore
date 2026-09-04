@@ -4,7 +4,10 @@
 /storage/*.key
 /vendor
 .env
+/config/database.php
 .env.backup
+updfacturas.bat
+insertFacturas.bat
 .phpunit.result.cache
 docker-compose.override.yml
 Homestead.json
