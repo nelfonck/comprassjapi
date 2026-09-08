@@ -7,13 +7,18 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\Compra;
 use App\Models\DetalleCompra;
+use Illuminate\Support\Facades\Log;
 
 class ComprasController extends Controller
 {
 
     public function getCompras(Request $request){
         $validator = Validator::make($request->all(),[
-            'estado-recepcion' => 'sometimes'
+            'estado_recepcion' => 'sometimes',
+            'emisor' => 'sometimes',
+            'receptor' => 'sometimes',
+            'desde' => 'sometimes',
+            'hasta' => 'sometimes',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -23,12 +28,45 @@ class ComprasController extends Controller
             ], 400);    
         }
         try {
-            $estadoRecepcion = $request['estado-recepcion'] ?? null;
+            $estadoRecepcion = $request['estado_recepcion'] ?? null;
+            $emisor = $request['emisor'] ?? null;
+            $receptor = $request['receptor'] ?? null;
+            $desde = $request['desde'] ?? null;
+            $hasta = $request['hasta'] ?? null;
+
+            if ($emisor) {
+                $emisor = json_decode($emisor, true);
+            }
+
+            if ($receptor) {
+                $receptor = json_decode($receptor, true);
+            }
+
+            if (!empty($emisor['id']) && $emisor['id'] == -1) {
+                $emisor = null;
+            }
+
+            if (!empty($receptor['id']) && $receptor['id'] == -1) {
+                $receptor = null;
+            }
+
+            if (!empty($estadoRecepcion) && $estadoRecepcion == 6){
+                $estadoRecepcion = null;
+            }
 
             if ($estadoRecepcion==null){
                 $compras = Compra::orderBy('estado_recepcion', 'desc')->get();  
             }else{
-                $compras = Compra::where('estado_recepcion', $estadoRecepcion)->get();
+                $compras = Compra::where('estado_recepcion', $estadoRecepcion)
+                ->when($emisor, function($query, $emisor){
+                    return $query->where('emisor_identificacion', $emisor['identificacion']);
+                })->when($receptor, function($query, $receptor){
+                    return $query->where('receptor_identificacion', $receptor['identificacion']);
+                })->when($desde, function($query, $desde){
+                    return $query->whereDate('fecha_registro','>=', $desde);
+                })->when($hasta, function($query, $hasta){
+                    return $query->whereDate('fecha_registro','<=', $hasta);
+                })->get();
             }
 
             return Response()->Json(['statusCode' => 200, 'Lista de compras', 'compras' => $compras],200);
