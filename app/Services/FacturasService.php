@@ -86,7 +86,7 @@ class FacturasService
         $compania = Compania::first();
 
         try {
-            $facturas = FacturaVista::where('fecha_creacion', '>=', '2026-01-01')->orderBy('fecha_creacion')->chunk(500, function($facturas) use ($compania){
+            $facturas = FacturaVista::whereDate('fecha_creacion', '>=', '2026-01-01')->orderBy('fecha_creacion')->chunk(500, function($facturas) use ($compania){
                 $registros = [];
                 foreach ($facturas as $key => $factura) {
                     $registros[] = [
