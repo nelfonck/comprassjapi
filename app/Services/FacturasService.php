@@ -22,11 +22,11 @@ class FacturasService
             'parque',
             'barrio',
             'lc',
-            //'panera',
+            'panera',
             'desarrollos',
-            'lico32',
+            //'lico32',
             'pasion',
-            //'rancho',
+            'rancho',
             'costasur',
             'ps'
         ];
@@ -86,7 +86,7 @@ class FacturasService
         $compania = Compania::first();
 
         try {
-            $facturas = FacturaVista::where('fecha_creacion', '>=', '2026-08-28')->orderBy('fecha_creacion')->chunk(500, function($facturas) use ($compania){
+            $facturas = FacturaVista::where('fecha_creacion', '>=', '2026-01-01')->orderBy('fecha_creacion')->chunk(500, function($facturas) use ($compania){
                 $registros = [];
                 foreach ($facturas as $key => $factura) {
                     $registros[] = [
@@ -125,7 +125,7 @@ class FacturasService
                 'trace'   => $e->getTraceAsString(),
             ]);
 
-            throw Command::FAILURE;
+            throw $e;
         }
     }
 }

@@ -54,20 +54,19 @@ class ComprasController extends Controller
                 $estadoRecepcion = null;
             }
 
-            if ($estadoRecepcion==null){
-                $compras = Compra::orderBy('estado_recepcion', 'desc')->get();  
-            }else{
-                $compras = Compra::where('estado_recepcion', $estadoRecepcion)
-                ->when($emisor, function($query, $emisor){
-                    return $query->where('emisor_identificacion', $emisor['identificacion']);
-                })->when($receptor, function($query, $receptor){
-                    return $query->where('receptor_identificacion', $receptor['identificacion']);
-                })->when($desde, function($query, $desde){
-                    return $query->whereDate('fecha_registro','>=', $desde);
-                })->when($hasta, function($query, $hasta){
-                    return $query->whereDate('fecha_registro','<=', $hasta);
-                })->get();
-            }
+       
+            $compras = Compra::when($estadoRecepcion, function($query, $estadoRecepcion){
+                return $query->where('estado_recepcion', $estadoRecepcion);
+            })->when($emisor, function($query, $emisor){
+                return $query->where('emisor_identificacion', $emisor['identificacion']);
+            })->when($receptor, function($query, $receptor){
+                return $query->where('receptor_identificacion', $receptor['identificacion']);
+            })->when($desde, function($query, $desde){
+                return $query->whereDate('fecha_registro','>=', $desde);
+            })->when($hasta, function($query, $hasta){
+                return $query->whereDate('fecha_registro','<=', $hasta);
+            })->orderBy('fecha_emision', 'desc')->get();
+   
 
             return Response()->Json(['statusCode' => 200, 'Lista de compras', 'compras' => $compras],200);
 
