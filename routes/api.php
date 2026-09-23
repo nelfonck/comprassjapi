@@ -36,6 +36,10 @@ Route::middleware('apikey')->group(function () {
         '/guardar-razon-social',
         [RazonSocialController::class, 'guardarRazonSocial']
     );
+    Route::put(
+        '/modificar-razon-social',
+        [RazonSocialController::class, 'modificarRazonSocial']
+    );
     Route::post(
         '/guardar-tienda',
         [TiendaController::class, 'guardarTienda']

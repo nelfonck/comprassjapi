@@ -77,8 +77,52 @@ class RazonSocialController extends Controller
                     'statusCode' => 200,
                     'message' => 'Razón social creada correctamente',
                     'data' => $razonSocial
-                ]);
+                ],200);
             }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function modificarRazonSocial(Request $request){
+        try {
+            $validator = Validator::make($request->all(),[
+                'identificacion' => 'required',
+                'tipo_identificacion' => 'required',
+                'nombre' => 'required',
+                'nombre_comercial' => 'required',
+                'correo' => 'required',
+                'telefono' => 'required'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'statusCode' => 400,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ], 400);
+            }
+
+            $actualizado = RazonSocial::where(
+                'identificacion',
+                $request->identificacion
+            )->update([
+                'identificacion' => $request->identificacion,
+                'tipo_identificacion' => $request->tipo_identificacion,
+                'nombre' => $request->nombre,
+                'nombre_comercial' => $request->nombre_comercial,
+                'correo' => $request->correo,
+                'telefono' => $request->telefono
+            ]);
+
+            return response()->json([
+                'statusCode' => 200,
+                'message' => 'Razón social modificada correctamente'
+            ],200);
+
 
         } catch (\Exception $e) {
             return response()->json([
