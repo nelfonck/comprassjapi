@@ -24,7 +24,7 @@ class FacturasService
             'lc',
             'panera',
             'desarrollos',
-            //'lico32',
+            'lico32',
             'pasion',
             'rancho',
             'costasur',

@@ -6,6 +6,7 @@ use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\TiendaController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ComprasController;
+use App\Http\Controllers\VentaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -22,7 +23,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('apikey')->group(function () {
-
 
     Route::get(
         '/existe-razon-social',
@@ -67,6 +67,11 @@ Route::middleware('apikey')->group(function () {
     Route::get(
         '/compras',
         [ComprasController::class, 'getCompras']
+    );
+
+    Route::get(
+        '/rotacion',
+        [VentaController::class, 'getRotacionGlobal']
     );
 
 
