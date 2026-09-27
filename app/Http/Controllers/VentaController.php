@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Compania;
 use App\Models\Factura;
 use App\Models\HistorialFactura;
 use App\Models\DetalleFactura;
@@ -12,12 +13,14 @@ use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
-    public function getVentas(Request $request){
+    public function getVentas(Request $request)
+    {
         try {
-            $validator = Validator::make($request->all(),[
-                'fecha_inicio' => 'required',
-                'fecha_fin' => 'required'
+    
+            $validator = Validator::make($request->all(), [
+                'fecha_inicio' => 'required'
             ]);
+    
             if ($validator->fails()) {
                 return response()->json([
                     'statusCode' => 400,
@@ -25,31 +28,158 @@ class VentaController extends Controller
                     'errors' => $validator->errors()
                 ], 400);
             }
-            
+                
+            $fechaInicio = $request->input('fecha_inicio');
+
+            $conexiones = [
+                'qupos',
+                'playa',
+                'parque',
+                'barrio',
+                'lc',
+                'panera',
+                'desarrollos',
+                'lico32',
+                'pasion',
+                'rancho',
+                'costasur',
+                'ps'
+            ];
+
             $registros = [];
-            $totalFacturado = 0;
-            $iva = 0;
-            $colones = 0;
-            $dolares = 0;
-            $descuento = 0;
-            $credito = 0;
-            $sinpe = 0;
-            $anuladoColones = 0;
-            $anuladoDolares = 0;
-            $anuladoTotalColones = 0;
-            
-            $facturas = HistorialFactura::whereDate('fecha_creacion', '>=', $request->input('fecha_inicio'))->unionAll(
-                    Factura::whereDate('fecha_creacion', '>=', $request->input('fecha_inicio'))   
-            )->get();
 
-            foreach ($controlesCajas as $key => $controlCaja) {
-                $totalFacturado+= $controlCaja->monto_total_facturado;
-                $iva+= $controlCaja->monto_impuestos;
-                $colones+= $controlCaja->monto_impuestos;
+            foreach ($conexiones as $key => $conexion) {
+                # code...
+                /*
+                 * FACTURAS DE LAS DOS TABLAS
+                 */
+                $compania = Compania::on($conexion)->select(
+                    'identificacion',
+                    'razon_social',
+                    'razon_comercial'
+                )->first();
+
+                $facturas = HistorialFactura::on($conexion)->select(
+                    'monto_neto_col',
+                    'monto_iv_col',
+                    'monto_descuento_col',
+                    'tipo_pago',
+                    'tipo_cambio'
+                )
+                ->whereDate('fecha_creacion', '>=', $fechaInicio)
+                ->unionAll(
+                    Factura::on($conexion)->select(
+                        'monto_neto_col',
+                        'monto_iv_col',
+                        'monto_descuento_col',
+                        'tipo_pago',
+                        'tipo_cambio'
+                    )
+                    ->whereDate('fecha_creacion', '>=', $fechaInicio)
+                );
+        
+                /*
+                 * TODOS LOS TOTALES EN UNA SOLA CONSULTA
+                 */
+                $totales = DB::connection($conexion)->query()
+                    ->fromSub($facturas, 'f')
+                    ->selectRaw('
+        
+                        COALESCE(SUM(monto_neto_col), 0)
+                            AS facturado,
+        
+                        COALESCE(SUM(monto_iv_col), 0)
+                            AS iva,
+        
+                        COALESCE(SUM(monto_descuento_col), 0)
+                            AS descuento,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'C\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS colones,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'D\'
+                                THEN monto_neto_col / NULLIF(tipo_cambio, 0)
+                                ELSE 0
+                            END
+                        ), 0) AS dolares,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'CR\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS credito,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'T\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS tarjeta,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'TR\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS sinpe,
+        
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_pago = \'MX\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS mixto
+        
+                    ')
+                    ->first();
+        
+                /*
+                 * RESULTADO
+                 */
+                $registros[] = [
+        
+                    'compania' => $compania,
+        
+                    'facturado' => (float) $totales->facturado,
+        
+                    'iva' => (float) $totales->iva,
+        
+                    'colones' => (float) $totales->colones,
+        
+                    'dolares' => (float) $totales->dolares,
+        
+                    'descuento' => (float) $totales->descuento,
+        
+                    'credito' => (float) $totales->credito,
+        
+                    'tarjeta' => (float) $totales->tarjeta,
+        
+                    'sinpe' => (float) $totales->sinpe,
+        
+                    'mixto' => (float) $totales->mixto,
+                ];
             }
-
-
+    
+            return response()->json([
+                'statusCode' => 200,
+                'message' => 'informe de ventas',
+                'data' => $registros
+            ], 200);
+    
         } catch (\Exception $e) {
+    
             return response()->json([
                 'statusCode' => 500,
                 'message' => $e->getMessage(),

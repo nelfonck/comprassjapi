@@ -73,6 +73,10 @@ Route::middleware('apikey')->group(function () {
         '/rotacion',
         [VentaController::class, 'getRotacionGlobal']
     );
+    Route::get(
+        '/ventas',
+        [VentaController::class, 'getVentas']
+    );
 
 
 });
