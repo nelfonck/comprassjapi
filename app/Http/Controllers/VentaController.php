@@ -188,7 +188,20 @@ class VentaController extends Controller
     }
 
     public function getRotacionGlobal(Request $request){
-        $fechaInicio = now()->startOfWeek()->format('Y-m-d');
+        
+        $validator = Validator::make($request->all(), [
+            'fecha_inicio' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'statusCode' => 400,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()
+            ], 400);
+        }
+            
+        $fechaInicio = $request->input('fecha_inicio');
 
         $companias = [
             'qupos',
