@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\Compania;
 use App\Models\Factura;
 use App\Models\HistorialFactura;
 use App\Models\DetalleFactura;
 use App\Models\HistorialDetalleFactura;
-use Illuminate\Support\Facades\DB;
+use App\Models\NotaCredito;
 
 class VentaController extends Controller
 {
@@ -35,7 +36,7 @@ class VentaController extends Controller
                 'qupos',
                 'playa',
                 'parque',
-                'barrio',
+                //'barrio',
                 'lc',
                 'panera',
                 'desarrollos',
@@ -144,6 +145,9 @@ class VentaController extends Controller
         
                     ')
                     ->first();
+
+                    //SUMAR TOTAL NOTA CREDITO
+                    $totalNotaCredito = NotaCredito::on($conexion)->whereDate('fecha_aplicado', '>=', $fechaInicio)->sum('total_col');
         
                 /*
                  * RESULTADO
@@ -169,6 +173,8 @@ class VentaController extends Controller
                     'sinpe' => (float) $totales->sinpe,
         
                     'mixto' => (float) $totales->mixto,
+
+                    'notas_credito' => (float) $totalNotaCredito
                 ];
             }
     
