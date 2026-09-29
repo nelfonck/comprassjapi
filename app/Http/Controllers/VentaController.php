@@ -36,7 +36,7 @@ class VentaController extends Controller
                 'qupos',
                 'playa',
                 'parque',
-                //'barrio',
+                'barrio',
                 'lc',
                 'panera',
                 'desarrollos',
