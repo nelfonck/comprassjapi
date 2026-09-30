@@ -7,6 +7,7 @@ use App\Models\FacturaVista;
 use App\Models\Compania;
 use App\Models\FacturaHub;
 use App\Models\DocumentoRecepcion;
+use App\Helpers\Constantes;
 
 class FacturasService
 {
@@ -17,19 +18,7 @@ class FacturasService
         4 = Recibido
         5 = Espera descarga*/
 
-        $companias = [
-            'playa',
-            'parque',
-            'barrio',
-            'lc',
-            'panera',
-            'desarrollos',
-            'lico32',
-            'pasion',
-            'rancho',
-            'costasur',
-            'ps'
-        ];
+        $companias = Constantes::$conexiones;
 
         try {
 

@@ -13,6 +13,7 @@ use App\Models\HistorialDetalleFactura;
 use App\Models\NotaCredito;
 use App\Models\CXC;
 use App\Models\RazonSocial;
+use App\Helpers\Constantes;
 
 class VentaController extends Controller
 {
@@ -48,20 +49,7 @@ class VentaController extends Controller
             } 
 
            // $local = $request->input('local');
-            $conexiones = [
-                'qupos',
-                'playa',
-                'parque',
-                'barrio',
-                'lc',
-                'panera',
-                'desarrollos',
-                'lico32',
-                'pasion',
-                'rancho',
-                'costasur',
-                'ps'
-            ];
+            $conexiones = Constantes::$conexiones;
 
             $registros = [];
 
@@ -224,20 +212,7 @@ class VentaController extends Controller
     public function getRotacionGlobal(Request $request){
         $fechaInicio = now()->startOfWeek()->format('Y-m-d');
 
-        $companias = [
-            'qupos',
-            'playa',
-            'parque',
-            'barrio',
-            'lc',
-            'panera',
-            'desarrollos',
-            'lico32',
-            'pasion',
-            'rancho',
-            'costasur',
-            'ps'
-        ];
+        $companias = Constantes::$conexiones;
 
         $codigos = [
            '074323047165','074323079715','07432354','123490','74000654','74000661','74000685','74000708','74001187','74001200',
