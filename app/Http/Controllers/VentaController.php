@@ -11,6 +11,8 @@ use App\Models\HistorialFactura;
 use App\Models\DetalleFactura;
 use App\Models\HistorialDetalleFactura;
 use App\Models\NotaCredito;
+use App\Models\CXC;
+use App\Models\RazonSocial;
 
 class VentaController extends Controller
 {
@@ -19,7 +21,9 @@ class VentaController extends Controller
         try {
     
             $validator = Validator::make($request->all(), [
-                'fecha_inicio' => 'required'
+                'fecha_inicio' => 'required',
+                'fecha_fin' => 'sometimes',
+                'rs' => 'required'
             ]);
     
             if ($validator->fails()) {
@@ -31,7 +35,19 @@ class VentaController extends Controller
             }
                 
             $fechaInicio = $request->input('fecha_inicio');
+            $fechaFin = $request->input('fecha_fin');
+            //Si local viene con el id -1 definimos nula la variable para no contemplarla en el query
+            $rs = $request->rs;
 
+            if (is_string($rs)) {
+                $rs = json_decode($rs,true);
+            }
+
+            if ($rs['id']==-1){
+                $rs = null;
+            } 
+
+           // $local = $request->input('local');
             $conexiones = [
                 'qupos',
                 'playa',
@@ -59,6 +75,13 @@ class VentaController extends Controller
                     'razon_social',
                     'razon_comercial'
                 )->first();
+                
+                //si tienda no viene null lo limitamos a solo su respectiva conexion
+                if ($rs!=null){
+                    if ($rs['identificacion'] != $compania['identificacion']){
+                        continue;
+                    }
+                }
 
                 $facturas = HistorialFactura::on($conexion)->select(
                     'monto_neto_col',
@@ -148,6 +171,9 @@ class VentaController extends Controller
 
                     //SUMAR TOTAL NOTA CREDITO
                     $totalNotaCredito = NotaCredito::on($conexion)->whereDate('fecha_aplicado', '>=', $fechaInicio)->sum('total_col');
+
+                    //SUMAR TOTAL ABONOS
+                    $totalAbonos = CXC::on($conexion)->whereDate('fecha', '>=', $fechaInicio)->sum('monto_movimiento');
         
                 /*
                  * RESULTADO
@@ -174,7 +200,9 @@ class VentaController extends Controller
         
                     'mixto' => (float) $totales->mixto,
 
-                    'notas_credito' => (float) $totalNotaCredito
+                    'notas_credito' => (float) $totalNotaCredito,
+
+                    'abonos' => (float) $totalAbonos
                 ];
             }
     
@@ -184,7 +212,7 @@ class VentaController extends Controller
                 'data' => $registros
             ], 200);
     
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
     
             return response()->json([
                 'statusCode' => 500,
