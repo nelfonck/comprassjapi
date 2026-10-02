@@ -11,7 +11,7 @@ class Constantes
         'parque',
         'barrio',
         'lc',
-        'panera',
+        //'panera',
         'desarrollos',
         'lico32',
         'pasion',
