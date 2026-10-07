@@ -11,12 +11,17 @@ class Constantes
         'parque',
         'barrio',
         'lc',
-        //'panera',
+        'panera',
         'desarrollos',
         'lico32',
         'pasion',
         'rancho',
         'costasur',
         'ps'
+    ];
+
+    public static $conexiones_insertar = [
+        'qupos',
+        'panera'
     ];
 }
