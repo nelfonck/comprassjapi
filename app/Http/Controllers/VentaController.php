@@ -10,10 +10,14 @@ use App\Models\Factura;
 use App\Models\HistorialFactura;
 use App\Models\DetalleFactura;
 use App\Models\HistorialDetalleFactura;
-use App\Models\NotaCredito;
 use App\Models\CXC;
 use App\Models\RazonSocial;
 use App\Helpers\Constantes;
+use App\Models\ViewFacturas3;
+use App\Models\DetalleFacturasNotaCredito;
+use App\Models\NotaCredito;
+use App\Models\NotaDebito;
+
 
 class VentaController extends Controller
 {
@@ -70,31 +74,180 @@ class VentaController extends Controller
                         continue;
                     }
                 }
+                /*
+                |--------------------------------------------------------------------------
+                | 1. Notas de crédito aplicadas a las facturas
+                |--------------------------------------------------------------------------
+                */
 
-                $facturas = HistorialFactura::on($conexion)->select(
-                    'monto_neto_col',
-                    'monto_iv_col',
-                    'monto_descuento_col',
-                    'tipo_pago',
-                    'tipo_cambio'
-                )
-                ->whereDate('fecha_creacion', '>=', $fechaInicio)
-                ->unionAll(
-                    Factura::on($conexion)->select(
-                        'monto_neto_col',
-                        'monto_iv_col',
-                        'monto_descuento_col',
-                        'tipo_pago',
-                        'tipo_cambio'
+                $notasAplicadas = DetalleFacturasNotaCredito::query()
+                    ->from('detalle_facturas_nota_credito as d')
+                    ->join('nota_credito as n', function ($join) {
+                        $join->on(
+                            'n.codigo_nota_credito',
+                            '=',
+                            'd.nota_credito'
+                        );
+                    })
+                    ->leftJoin('nota_debito as nd', function ($join) {
+                        $join->on(
+                            'nd.nota_credito_reversada',
+                            '=',
+                            'n.codigo_nota_credito'
+                        );
+                    })
+                    ->where('n.estado', '1')
+                    ->select('d.factura')
+                    ->selectRaw('
+                        SUM(
+                            d.monto_aplica - COALESCE(nd.subtotal_con_imp, 0)
+                        ) AS monto_nc
+                    ')
+                    ->groupBy('d.factura');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | 2. Facturas con el cálculo de aplicación de NC
+                |--------------------------------------------------------------------------
+                */
+
+                $facturasBase = ViewFacturas3::query()
+                    ->from('view_facturas3 as vf')
+                    ->leftJoinSub($notasAplicadas, 'nc', function ($join) {
+                        $join->on('nc.factura', '=', 'vf.cod_factura');
+                    })
+                    ->whereDate('vf.fecha_factura', '>=', $fechaInicio)
+                    ->whereDate('vf.fecha_factura', '<=', $fechaFin)
+                    ->select('vf.*')
+                    ->selectRaw('
+                        COALESCE(nc.monto_nc, 0) AS monto_nc
+                    ');
+
+                /*
+                * La consulta exterior calcula aplicacion_nc.
+                * 2 = totalmente aplicada
+                * 1 = parcialmente aplicada
+                * 0 = sin aplicación
+                */
+
+                $facturas = DB::query()
+                    ->fromSub($facturasBase, 'f')
+                    ->select('f.*')
+                    ->selectRaw('
+                        CASE
+                            WHEN ROUND(
+                                COALESCE(f.monto_neto_col, 0)::numeric, 2
+                            ) = ROUND(
+                                COALESCE(f.monto_nc, 0)::numeric, 2
+                            )
+                            AND COALESCE(f.monto_nc, 0) > 0
+                                THEN 2
+
+                            WHEN COALESCE(f.monto_nc, 0) > 0
+                            AND ROUND(
+                                COALESCE(f.monto_neto_col, 0)::numeric
+                                - COALESCE(f.monto_nc, 0)::numeric, 2
+                            ) > 0
+                                THEN 1
+
+                            ELSE 0
+                        END AS aplicacion_nc
+                    ');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | 3. Selección de facturas
+                |--------------------------------------------------------------------------
+                */
+
+                $documentosFacturas = DB::query()
+                    ->fromSub($facturas, 'f')
+                    ->whereIn('f.aplicacion_nc', [1, 0])
+                    ->selectRaw("
+                        f.cod_factura::varchar AS cod_factura,
+                        f.cod_control_caja,
+                        f.fecha_factura,
+                        f.cod_cliente,
+                        f.consecutivo_hacienda,
+                        f.clave_hacienda,
+                        f.cod_factura::varchar AS numero_documento,
+                        f.monto_neto_col,
+                        f.monto_iv_col,
+                        f.monto_bruto_col,
+                        f.monto_descuento_col,
+                        f.monto_exento::numeric AS monto_exento,
+                        f.nombre_cliente,
+                        f.recurso,
+                        f.bodega,
+                        f.tipo_pago,
+                        f.tipo_cambio,
+                        'FA' AS tipo_documento,
+                        'Factura' AS tipo_documento_desc,
+                        f.aplicacion_nc
+                    ");
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | 4. Selección de notas de crédito
+                |--------------------------------------------------------------------------
+                */
+
+                $documentosNotas = NotaCredito::query()
+                    ->from('nota_credito as nc')
+                    ->leftJoin(
+                        'tipo_nota_credito as tn',
+                        'tn.tipo_nota_credito',
+                        '=',
+                        'nc.tipo_nota'
                     )
-                    ->whereDate('fecha_creacion', '>=', $fechaInicio)
-                );
+                    ->where('nc.estado', '1')
+                    ->where('tn.devolucion', 'S')
+                    ->whereDate('nc.fecha', '>=', $fechaInicio)
+                    ->whereDate('nc.fecha', '<=', $fechaFin)
+                    ->where('nc.tipo_nota', '!=', 'AN')
+                    ->selectRaw("
+                        nc.codigo_nota_credito::varchar AS cod_factura,
+                        nc.cod_control_caja_aplico_nota AS cod_control_caja,
+                        nc.fecha AS fecha_factura,
+                        nc.cod_cliente,
+                        nc.consecutivo_hacienda,
+                        nc.clave_hacienda,
+                        nc.numero_nota_cliente::varchar AS numero_documento,
+                        nc.total_col::numeric * -1 AS monto_neto_col,
+                        nc.total_imp_col::numeric * -1 AS monto_iv_col,
+                        (nc.total_col - nc.total_imp_col)::numeric * -1
+                            AS monto_bruto_col,
+                        nc.total_descuento::numeric * -1 AS monto_descuento_col,
+                        nc.total_exento::numeric * -1 AS monto_exento,
+                        nc.nombre_cliente,
+                        nc.recurso,
+                        nc.bodega,
+                        nc.tipo_pago_factura AS tipo_pago,
+                        nc.tipo_cambio,
+                        'NC' AS tipo_documento,
+                        'Nota crédito' AS tipo_documento_desc,
+                        NULL::integer AS aplicacion_nc
+                    ");
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | 5. Unión final: facturas + notas de crédito
+                |--------------------------------------------------------------------------
+                */
+
+                $documentos =  $documentosFacturas
+                    ->unionAll($documentosNotas)
+                    ->get();
         
                 /*
                  * TODOS LOS TOTALES EN UNA SOLA CONSULTA
                  */
                 $totales = DB::connection($conexion)->query()
-                    ->fromSub($facturas, 'f')
+                    ->fromSub($documentos, 'f')
                     ->selectRaw('
         
                         COALESCE(SUM(monto_neto_col), 0)
@@ -152,7 +305,15 @@ class VentaController extends Controller
                                 THEN monto_neto_col
                                 ELSE 0
                             END
-                        ), 0) AS mixto
+                        ), 0) AS mixto,
+
+                        COALESCE(SUM(
+                            CASE
+                                WHEN tipo_documento = \'NC\'
+                                THEN monto_neto_col
+                                ELSE 0
+                            END
+                        ), 0) AS monto_notas
         
                     ')
                     ->first();
@@ -188,7 +349,7 @@ class VentaController extends Controller
         
                     'mixto' => (float) $totales->mixto,
 
-                    'notas_credito' => (float) $totalNotaCredito,
+                    'notas_credito' => (float) $totales->monto_notas,
 
                     'abonos' => (float) $totalAbonos
                 ];
