@@ -80,7 +80,7 @@ class VentaController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $notasAplicadas = DetalleFacturasNotaCredito::query()
+                $notasAplicadas = DetalleFacturasNotaCredito::on($conexion)
                     ->from('detalle_facturas_nota_credito as d')
                     ->join('nota_credito as n', function ($join) {
                         $join->on(
@@ -112,7 +112,7 @@ class VentaController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $facturasBase = ViewFacturas3::query()
+                $facturasBase = ViewFacturas3::on($conexion)
                     ->from('view_facturas3 as vf')
                     ->leftJoinSub($notasAplicadas, 'nc', function ($join) {
                         $join->on('nc.factura', '=', 'vf.cod_factura');
@@ -131,7 +131,7 @@ class VentaController extends Controller
                 * 0 = sin aplicación
                 */
 
-                $facturas = DB::query()
+                $facturas = DB::connection($conexion)->query()
                     ->fromSub($facturasBase, 'f')
                     ->select('f.*')
                     ->selectRaw('
@@ -162,7 +162,7 @@ class VentaController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $documentosFacturas = DB::query()
+                $documentosFacturas = DB::connection($conexion)->query()
                     ->fromSub($facturas, 'f')
                     ->whereIn('f.aplicacion_nc', [1, 0])
                     ->selectRaw("
@@ -183,6 +183,10 @@ class VentaController extends Controller
                         f.bodega,
                         f.tipo_pago,
                         f.tipo_cambio,
+                        f.pagado_con,
+                        f.monto_col_mx,
+                        f.monto_card_mx,
+                        f.monto_dol_mx,
                         'FA' AS tipo_documento,
                         'Factura' AS tipo_documento_desc,
                         f.aplicacion_nc
@@ -195,7 +199,7 @@ class VentaController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $documentosNotas = NotaCredito::query()
+                $documentosNotas = NotaCredito::on($conexion)
                     ->from('nota_credito as nc')
                     ->leftJoin(
                         'tipo_nota_credito as tn',
@@ -225,8 +229,12 @@ class VentaController extends Controller
                         nc.nombre_cliente,
                         nc.recurso,
                         nc.bodega,
-                        nc.tipo_pago_factura AS tipo_pago,
-                        nc.tipo_cambio,
+                        '' AS tipo_pago,
+                        0::numeric AS tipo_cambio,
+                        0::numeric as pagado_con,
+                        0::numeric as monto_col_mx,
+                        0::numeric as monto_card_mx,
+                        0::numeric as monto_dol_mx,
                         'NC' AS tipo_documento,
                         'Nota crédito' AS tipo_documento_desc,
                         NULL::integer AS aplicacion_nc
@@ -242,82 +250,23 @@ class VentaController extends Controller
                 $documentos =  $documentosFacturas
                     ->unionAll($documentosNotas)
                     ->get();
-        
-                /*
-                 * TODOS LOS TOTALES EN UNA SOLA CONSULTA
-                 */
-                $totales = DB::connection($conexion)->query()
-                    ->fromSub($documentos, 'f')
-                    ->selectRaw('
-        
-                        COALESCE(SUM(monto_neto_col), 0)
-                            AS facturado,
-        
-                        COALESCE(SUM(monto_iv_col), 0)
-                            AS iva,
-        
-                        COALESCE(SUM(monto_descuento_col), 0)
-                            AS descuento,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'C\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS colones,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'D\'
-                                THEN monto_neto_col / NULLIF(tipo_cambio, 0)
-                                ELSE 0
-                            END
-                        ), 0) AS dolares,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'CR\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS credito,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'T\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS tarjeta,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'TR\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS sinpe,
-        
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_pago = \'MX\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS mixto,
 
-                        COALESCE(SUM(
-                            CASE
-                                WHEN tipo_documento = \'NC\'
-                                THEN monto_neto_col
-                                ELSE 0
-                            END
-                        ), 0) AS monto_notas
+                $totales = [
+                    'facturado' => $documentos->sum('monto_neto_col'),
+                    'iva' => $documentos->sum('monto_iv_col'),
+                    'descuento' => $documentos->sum('monto_descuento_col'),
+                    'colones' => $documentos->where('tipo_pago', 'C')->sum('pagado_con') 
+                    + $documentos->where('tipo_pago', 'MX')->sum('monto_col_mx'),
+                    'dolares' => $documentos->where('tipo_pago', 'D')->sum('pagado_con') 
+                    + $documentos->where('tipo_pago', 'MX')->sum('monto_dol_mx'),
+                    'credito' => $documentos->where('tipo_pago', 'CR')->sum('monto_neto_col'),
+                    'tarjeta' => $documentos->where('tipo_pago', 'T')->sum('pagado_con')
+                    + $documentos->where('tipo_pago', 'MX')->sum('monto_card_mx'),
+                    'sinpe' => $documentos->where('tipo_pago', 'TR')->sum('monto_neto_col'),
+                    'mixto' => $documentos->where('tipo_pago', 'MX')->sum('monto_neto_col'),
+                    'monto_notas' => $documentos->where('tipo_documento', 'NC')->sum('monto_neto_col'),
+                ]; 
         
-                    ')
-                    ->first();
-
                     //SUMAR TOTAL NOTA CREDITO
                     $totalNotaCredito = NotaCredito::on($conexion)->whereDate('fecha_aplicado', '>=', $fechaInicio)->sum('total_col');
 
@@ -331,25 +280,25 @@ class VentaController extends Controller
         
                     'compania' => $compania,
         
-                    'facturado' => (float) $totales->facturado,
+                    'facturado' => (float) $totales['facturado'],
         
-                    'iva' => (float) $totales->iva,
+                    'iva' => (float) $totales['iva'],
         
-                    'colones' => (float) $totales->colones,
+                    'colones' => (float) $totales['colones'],
         
-                    'dolares' => (float) $totales->dolares,
+                    'dolares' => (float) $totales['dolares'],
         
-                    'descuento' => (float) $totales->descuento,
+                    'descuento' => (float) $totales['descuento'],
         
-                    'credito' => (float) $totales->credito,
+                    'credito' => (float) $totales['credito'],
         
-                    'tarjeta' => (float) $totales->tarjeta,
+                    'tarjeta' => (float) $totales['tarjeta'],
         
-                    'sinpe' => (float) $totales->sinpe,
+                    'sinpe' => (float) $totales['sinpe'],
         
-                    'mixto' => (float) $totales->mixto,
+                    'mixto' => (float) $totales['mixto'],
 
-                    'notas_credito' => (float) $totales->monto_notas,
+                    'notas_credito' => (float) $totales['monto_notas'],
 
                     'abonos' => (float) $totalAbonos
                 ];
