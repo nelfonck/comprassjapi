@@ -267,9 +267,6 @@ class VentaController extends Controller
                     'monto_notas' => $documentos->where('tipo_documento', 'NC')->sum('monto_neto_col'),
                 ]; 
         
-                    //SUMAR TOTAL NOTA CREDITO
-                    $totalNotaCredito = NotaCredito::on($conexion)->whereDate('fecha_aplicado', '>=', $fechaInicio)->sum('total_col');
-
                     //SUMAR TOTAL ABONOS
                     $totalAbonos = CXC::on($conexion)->whereDate('fecha', '>=', $fechaInicio)->sum('monto_movimiento');
         
